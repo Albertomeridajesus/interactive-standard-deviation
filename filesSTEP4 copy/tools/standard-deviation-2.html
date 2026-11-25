@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Standard Deviation — Visual Statistics</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&family=Bebas+Neue&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.js"></script>
+  <style>
+    #sigma-bubble {
+      background: #0d1222;
+      border: 1px solid rgba(0,212,255,0.3);
+      border-left: 3px solid #00d4ff;
+      border-radius: 10px;
+      padding: 14px 16px;
+      animation: fadeIn 0.3s ease;
+    }
+    .sigma-name {
+      font-size: 10px;
+      font-family: 'DM Mono', monospace;
+      color: #00d4ff;
+      letter-spacing: 2px;
+      margin-bottom: 8px;
+    }
+    .sigma-msg {
+      font-size: 12px;
+      color: #c8d8f0;
+      line-height: 1.6;
+      font-family: 'DM Sans', sans-serif;
+    }
+    .ch-text {
+      font-size: 13px;
+      color: #e8f0fe;
+      line-height: 1.6;
+      margin-bottom: 10px;
+      font-style: italic;
+    }
+    .ch-live-stats {
+      display: flex;
+      gap: 16px;
+      font-size: 12px;
+      font-family: 'DM Mono', monospace;
+      color: #6b7fa3;
+      background: #0a0e1a;
+      border-radius: 6px;
+      padding: 7px 10px;
+      margin-bottom: 10px;
+    }
+    .ch-live-stats strong { color: #00d4ff; }
+    .ch-conditions {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 10px;
+    }
+    .ch-condition {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      font-family: 'DM Mono', monospace;
+      padding: 6px 10px;
+      border-radius: 6px;
+      transition: all 0.3s ease;
+    }
+    .ch-condition.met   { background: rgba(6,214,160,0.1);  color: #06d6a0; border: 1px solid rgba(6,214,160,0.3); }
+    .ch-condition.unmet { background: rgba(107,127,163,0.07); color: #6b7fa3; border: 1px solid #1e2d45; }
+    .ch-icon { font-size: 13px; font-weight: 700; width: 16px; text-align: center; }
+    .ch-hint {
+      font-size: 11px;
+      color: #6b7fa3;
+      font-family: 'DM Mono', monospace;
+      background: #0a0e1a;
+      border-radius: 6px;
+      padding: 7px 10px;
+      margin-bottom: 10px;
+      line-height: 1.6;
+    }
+    .ch-celebrate {
+      font-size: 13px;
+      color: #06d6a0;
+      font-weight: 600;
+      margin-bottom: 10px;
+      text-align: center;
+      animation: popIn 0.4s ease;
+    }
+    .ch-btn {
+      width: 100%;
+      padding: 9px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: 'DM Sans', sans-serif;
+      transition: opacity 0.2s;
+      border: none;
+    }
+    .ch-btn:hover { opacity: 0.85; }
+    .ch-btn.primary { background: #00d4ff; color: #000; }
+    .ch-btn.ghost   { background: transparent; border: 1px solid #1e2d45; color: #6b7fa3; }
+  </style>
+</head>
+<body>
+
+  <nav class="top-nav">
+    <a href="../index.html" class="nav-back">← Visual Statistics</a>
+    <span class="nav-title">Standard Deviation</span>
+  </nav>
+
+  <div class="tool-hero">
+    <div class="tool-hero-label">Interactive Statistics Tool</div>
+    <h1 class="tool-hero-title">Standard Deviation</h1>
+    <p class="tool-hero-sub">Your mouse becomes a superhero. Fly across the sky and follow each step to discover how σ is calculated.</p>
+  </div>
+
+  <div class="stats-bar">
+    <div class="stat-card" style="border-top-color:#06d6a0">
+      <div class="stat-label">Mean (μ)</div>
+      <div class="stat-value" id="val-mean" style="color:#06d6a0">—</div>
+      <div class="stat-desc">average</div>
+    </div>
+    <div class="stat-card" style="border-top-color:#00d4ff">
+      <div class="stat-label">STD (σ)</div>
+      <div class="stat-value" id="val-sd" style="color:#00d4ff">—</div>
+      <div class="stat-desc">spread</div>
+    </div>
+    <div class="stat-card" style="border-top-color:#ffd166">
+      <div class="stat-label">Variance (σ²)</div>
+      <div class="stat-value" id="val-var" style="color:#ffd166">—</div>
+      <div class="stat-desc">σ squared</div>
+    </div>
+  </div>
+
+  <div class="tool-layout">
+
+    <!-- LEFT: Step sidebar -->
+    <div class="steps-sidebar">
+
+      <!-- Step 1 -->
+      <div class="step-block active" id="blk-1">
+        <div class="step-header" onclick="goStep(1)">
+          <span class="step-badge" id="bdg-1">1</span>
+          <span class="step-title-txt">Take the Heights</span>
+        </div>
+        <div class="step-body" id="bdy-1">
+          <p class="step-desc">A superhero is flying through the sky. Move your mouse across the canvas — their <strong style="color:#00d4ff">altitude is recorded</strong> at each checkpoint instantly.</p>
+          <div class="data-row">
+            <span class="data-lbl">n =</span>
+            <span class="data-val" id="val-n">0</span>
+            <button class="remove-btn" onclick="doRemove()">− Remove last</button>
+          </div>
+          <div class="data-row">
+            <span class="data-lbl">Data =</span>
+            <span class="data-val small-data" id="val-data">—</span>
+          </div>
+          <div class="step-hint">Fly across all 16 checkpoints to build your dataset. Come back to any checkpoint to update it. Click a bar + arrow keys to fine-tune.</div>
+          <button class="step-next-btn" onclick="goStep(2)">Next: Plot the deviations →</button>
+        </div>
+      </div>
+
+      <!-- Step 2 -->
+      <div class="step-block" id="blk-2">
+        <div class="step-header" onclick="goStep(2)">
+          <span class="step-badge" id="bdg-2">2</span>
+          <span class="step-title-txt">Plot the Deviations</span>
+        </div>
+        <div class="step-body" id="bdy-2" style="display:none">
+          <p class="step-desc">Each checkpoint is a different distance from the mean. That distance is the <strong style="color:#00d4ff">residual</strong>.</p>
+          <div class="step-hint">Drag the dot on the mean line up or down to each hero. When it snaps, you've found the residual!</div>
+          <div class="data-row" style="margin-top:10px">
+            <span class="data-lbl">μ =</span>
+            <span class="data-val" id="val-mean2" style="color:#06d6a0">—</span>
+          </div>
+          <button id="step2-bars-btn" class="step-next-btn ghost" onclick="toggleStep2Bars()" style="margin-bottom:8px;">Hide bars</button>
+          <button class="step-next-btn" id="step2-next" onclick="goStep(3)" disabled style="opacity:0.35;cursor:not-allowed;">Next: Square each →</button>
+        </div>
+      </div>
+
+      <!-- Step 3 -->
+      <div class="step-block" id="blk-3">
+        <div class="step-header" onclick="goStep(3)">
+          <span class="step-badge" id="bdg-3">3</span>
+          <span class="step-title-txt">Square Each Difference</span>
+        </div>
+        <div class="step-body" id="bdy-3" style="display:none">
+          <p class="step-desc">Squaring makes all values positive and penalises larger deviations more.</p>
+          <div class="step-formula">(x − μ)²</div>
+          <div class="data-row">
+            <span class="data-lbl">Σ(x−μ)² =</span>
+            <span class="data-val" id="val-ss" style="color:#00d4ff">—</span>
+          </div>
+          <button id="step3-bars-btn" class="step-next-btn ghost" onclick="toggleStep3Bars()" style="margin-bottom:8px;">Hide bars</button>
+          <button class="step-next-btn" id="step3-next" onclick="goStep(4)" disabled style="opacity:0.35;cursor:not-allowed;">Next: Divide by n →</button>
+        </div>
+      </div>
+
+      <!-- Step 4 -->
+      <div class="step-block" id="blk-4">
+        <div class="step-header" onclick="goStep(4)">
+          <span class="step-badge" id="bdg-4">4</span>
+          <span class="step-title-txt">Sum of the squared differences</span>
+        </div>
+        <div class="step-body" id="bdy-4" style="display:none">
+          <p class="step-desc">Divide by n to get the <strong style="color:#ffd166">variance</strong> — the average squared deviation.</p>
+          <div class="step-formula">σ² = Σ(x−μ)² ÷ n</div>
+          <div class="data-row">
+            <span class="data-lbl">n =</span>
+            <span class="data-val" id="val-n2">—</span>
+          </div>
+          <div class="data-row">
+            <span class="data-lbl">σ² =</span>
+            <span class="data-val" id="val-var2" style="color:#ffd166">—</span>
+          </div>
+          <button class="step-next-btn" id="step4-next" onclick="goStep(5)" disabled style="opacity:0.35;cursor:not-allowed;">Next: Square root →</button>
+        </div>
+      </div>
+
+      <!-- Step 5 -->
+      <div class="step-block" id="blk-5">
+        <div class="step-header" onclick="goStep(5)">
+          <span class="step-badge" id="bdg-5">5</span>
+          <span class="step-title-txt">Standard Deviation σ</span>
+        </div>
+        <div class="step-body" id="bdy-5" style="display:none">
+          <p class="step-desc">Take the square root of the variance to get back to the original units.</p>
+          <div class="step-formula">σ = √variance</div>
+          <div class="step-result-box">
+            <div class="step-result-lbl">σ =</div>
+            <div class="step-result-val" id="val-sd-final">—</div>
+          </div>
+          <div class="step-hint">The red arrow on the canvas shows exactly what σ looks like as a distance from μ.</div>
+          <button class="step-next-btn ghost" onclick="if(window.clearHeroes) window.clearHeroes(); goStep(1)">↺ Start over</button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- RIGHT: Canvas + Captain Sigma -->
+    <div style="display:flex; flex-direction:column; gap:12px; min-width:0;">
+    <div class="canvas-panel">
+      <div class="panel-header">
+        <div class="panel-label" id="canvas-label">STEP 1 — FLY YOUR HERO ACROSS THE SKY</div>
+        <button class="panel-clear-btn" onclick="if(window.clearHeroes) window.clearHeroes()" id="clear-btn">✕ Clear</button>
+      </div>
+      <div id="p5-canvas-container"></div>
+      <div class="canvas-hint" id="canvas-hint">Move your mouse left to right across the sky to record the hero's altitude</div>
+    </div>
+
+      <!-- Captain Sigma dialogue box -->
+      <div id="sigma-bubble" style="display:none">
+        <div class="sigma-name">🦸 CAPTAIN SIGMA</div>
+        <div class="sigma-msg" id="sigma-msg"></div>
+      </div>
+
+    </div><!-- end right column -->
+
+  </div>
+
+  <!-- CTA -->
+  <div class="cta-banner">
+    <div class="cta-text">
+      <div class="cta-title">📄 Teacher Lesson Plan</div>
+      <div class="cta-sub">Ready-to-use slides, exercises & answer key for standard deviation</div>
+    </div>
+    <a href="YOUR_GUMROAD_LINK_HERE" target="_blank" class="cta-btn">Download — $9</a>
+  </div>
+
+  <script src="../js/utils.js"></script>
+  <script src="../js/draw-helpers.js"></script>
+  <script src="../js/sd-state.js"></script>
+  <script src="../js/character.js"></script>
+  <script src="../js/sd-step1.js"></script>
+  <script src="../js/sd-step2.js"></script>
+  <script src="../js/sd-step3.js"></script>
+  <script src="../js/sd-step4.js"></script>
+  <script src="../js/sd-step5.js"></script>
+  <script src="../js/sd-challenge.js"></script>
+  <script>
+    const STEP_LABELS = {
+      1:'STEP 1 — FLY YOUR HERO ACROSS THE SKY',
+      2:'STEP 2 — DEVIATIONS FROM THE MEAN',
+      3:'STEP 3 — SQUARE EACH DIFFERENCE',
+      4:'STEP 4 — SUM OF THE SQUARED DIFFERENCES',
+      5:'STEP 5 — STANDARD DEVIATION σ'
+    };
+    const STEP_HINTS = {
+      1:'Move your mouse left to right across the sky to record the hero\'s altitude',
+      2:'Drag each dot from the mean line up or down to the hero to find the residual',
+      3:'Each box shows one hero\'s squared residual',
+      4:'The shaded bar is divided into n equal slices — each = variance',
+      5:'The red arrow shows σ — the typical distance from the mean'
+    };
+
+    function goStep(s) {
+      [1,2,3,4,5].forEach(i => {
+        const blk = document.getElementById('blk-'+i);
+        const bdy = document.getElementById('bdy-'+i);
+        const bdg = document.getElementById('bdg-'+i);
+        if (i === s) {
+          blk.className = 'step-block active';
+          bdy.style.display = 'block';
+          bdg.style.background = '#00d4ff';
+          bdg.style.color = '#000';
+          bdg.textContent = i;
+        } else if (i < s) {
+          blk.className = 'step-block done';
+          bdy.style.display = 'none';
+          bdg.style.background = '#06d6a0';
+          bdg.style.color = '#000';
+          bdg.textContent = '✓';
+        } else {
+          blk.className = 'step-block';
+          bdy.style.display = 'none';
+          bdg.style.background = '#1e2d45';
+          bdg.style.color = '#6b7fa3';
+          bdg.textContent = i;
+        }
+      });
+      document.getElementById('canvas-label').textContent = STEP_LABELS[s];
+      document.getElementById('canvas-hint').textContent  = STEP_HINTS[s];
+      document.getElementById('clear-btn').style.display  = s === 1 ? 'block' : 'none';
+      // Show Captain Sigma challenge only on step 1
+      const bubble = document.getElementById('sigma-bubble');
+      if (bubble) bubble.style.display = s === 1 ? 'block' : 'none';
+      if (window.goToSection) window.goToSection(s);
+    }
+
+    function doRemove() { if (window.removeLastHero) window.removeLastHero(); }
+
+    window.updateStats = function(stats) {
+      const f = (v,d=2) => (stats.n===0||isNaN(v)) ? '—' : v.toFixed(d);
+      document.getElementById('val-mean').textContent     = f(stats.mean);
+      document.getElementById('val-sd').textContent       = f(stats.sd);
+      document.getElementById('val-var').textContent      = f(stats.variance);
+      document.getElementById('val-mean2').textContent    = f(stats.mean);
+      document.getElementById('val-sd-final').textContent = f(stats.sd,4);
+      document.getElementById('val-n').textContent        = stats.n||0;
+      document.getElementById('val-n2').textContent       = stats.n||'—';
+      document.getElementById('val-var2').textContent     = f(stats.variance);
+      document.getElementById('val-ss').textContent       = f(stats.ss);
+      if (stats.vals && stats.vals.length > 0)
+        document.getElementById('val-data').textContent = stats.vals.map(v=>v.toFixed(1)).join(', ');
+      // Update challenge live conditions
+      if (window.currentSection === 1 && typeof updateChallenge === 'function') updateChallenge();
+    };
+
+    // Init challenge on load
+    window.addEventListener('load', () => {
+      if (typeof initChallenge === 'function') initChallenge();
+    });
+  </script>
+
+</body>
+</html>
